@@ -1,0 +1,75 @@
+
+
+
+SPECIAL TILES: 
+Portal ( 2 tiles needed)
+card chest
+
+VERSUS MODE SPEED RUN both players facing same map
+reward para peça tomada? ganha o valor da peça em gold ? pode comprar cartas? recrutar peças? ou ter peça tomada perde HP ?
+
+animação para quando uma peça toma a outra
+add 'pre-move' where u can play ur next turn while enemy is moving (gets blocked and cancelled if board is in a position where pre move would be impossible).
+ pre-move is a game play mechanic from chess.com
+
+add animation knocking piece over when piece takes another piece.
+
+add movement limit "life" to enemy pieces aswell. make enemy queen with 1 life also able to move one time (and die), right now enemy queen is doing nothing
+
+when player takes a enemy piece, player piece gains more movements to play (increase piece's life)
+
+
+board encounter!: map generation that displays a actual game position from real classical games (search for most knwown games and positions)
+but cast the board position without the king (player is already king piece)
+
+
+
+i want to be able to drag and release my pieces
+make player piece slide at movement and not instant snap to new tile.
+
+add cards to the game.
+pedir para gerar um possivel baralho
+ex de cartas: destroi peça alvo, move peça alvo, torna peça alvo aliada por 1 turno, teleport,  etc..
+
+
+map level only advances every second movement of a heroic piece.
+highlight all player's heroic pieces with a golden aura.
+add 2 starting pieces to choose : pawn and King.
+when a piece is expired it must not remain anything just remove it from the game and clear the tile.
+enemy can only move one piece per turn.
+
+
+
+
+
+um jogo feito para mobile de xadrez de UP SCROLL ( mapa de tiles de um tabuleiro de xadrez que avança para cima criando novos tiles e removendo os de baixo)
+ onde voce deve começar a run apenas com a possibilidade de peao e liberando as proximas peças conforme o jogo avança?
+o mapa a ser gerado deve ser gerado criando peças inimigas em formaçoes taticas. algumas peças aliadas tambem devem ser formadas
+ (com numero finito de possiveis jogadas, apos esse limite a peça "vira pedra" e vira um objeto estatico q nao pdoe se mover) para habilitar 
+sacrificios e destravamento de posições
+Peça heroica: peça que nao tem limite de movimentos e pode se tornar a peça principal a seguir avançando o jogo.
+o jogador deve SEMPRE ter 1 peça heroica na tela ou entao ele perde o jogo. jogo por turno, inimigos tambem jogam.
+libera melhorias persistentes para cada peça
+
+
+efeito de tremor e barulho de engrenagem e corrente quando a tela avançar um tile
+a tela avança um tile apos o turno do player
+
+
+modificadores de peças inimigas: 
+joga 2x
+nao pode se mover
+
+
+puzzles / mirror
+
+
+cool tower walls effect. should feel like going up a tower
+
+THE TILE OF THIS GAME WILL BE 64X64 PIXELS.
+sprites avaliable: 
+player_sheet.PNG and enemy_sheet with same format: EACH PIECE IS SIDE BY SIDE 64X128. ORDERED: KING , QUEEN, BISHOP , KNIGHT , ROOK, ESPECIAL PAWN, PAWN.
+tiles.png :2 64x64 side by side with first being the white tile and the second the dark tile
+HUD.png: 5 images , 64x64 candle , 128x64 chess clock , 64x64 empty bag, 64x64 dice bag , 64x64 dice
+
+create the game using the instructions read bootstrap at https://github.com/hileverage/hlever for folders structure 

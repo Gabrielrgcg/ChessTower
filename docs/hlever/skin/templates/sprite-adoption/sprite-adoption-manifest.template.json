@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "skinPackage": {
+    "id": "tibia-base-sprites",
+    "source": "resources/HL_TibiaBaseSprites_final.resource.zip",
+    "sha256": "2659167eff800ac1f757701287f2604dc106cbecea3060b4826e88da40a970ee",
+    "packageTimestamp": "<deterministic-package-timestamp-or-fixed-version>"
+  },
+  "importer": {
+    "name": "<project-sprite-importer>",
+    "version": "0.1.0",
+    "generatedOutputVersion": "1"
+  },
+  "runtimeCategories": [
+    {
+      "kind": "corpse",
+      "sourceCatalog": "items-or-corpses",
+      "authoritativeIdRequired": true,
+      "runtimeCount": 0,
+      "missingCount": 0
+    },
+    {
+      "kind": "outfit",
+      "sourceCatalog": "outfits",
+      "paletteMasksRequired": true,
+      "neutralColorSamplesRequired": true,
+      "runtimeCount": 0,
+      "missingCount": 0
+    },
+    {
+      "kind": "effect",
+      "sourceCatalog": "effects",
+      "runtimeCount": 0,
+      "missingCount": 0
+    }
+  ],
+  "strictCutover": {
+    "blockedRuntimePrefixes": [
+      "/classic-1098/",
+      "/otclient-main/",
+      "/otclient-mehah-main/",
+      "/custom/",
+      "/deprecated/"
+    ],
+    "allowedExceptions": []
+  },
+  "reviewPromotions": [
+    {
+      "id": "example-approved-review-promotion",
+      "runtimeKind": "monster",
+      "runtimeKey": "example_monster",
+      "sourceCatalog": "monsters",
+      "sourceRecordId": "example_source_id",
+      "sourceHash": "<source-evidence-hash>",
+      "status": "approved",
+      "approvedBy": "<reviewer>",
+      "approvedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "reason": "Exact silhouette and catalog identity match."
+    }
+  ],
+  "rejectedCandidates": [
+    {
+      "id": "example-rejected-candidate",
+      "runtimeKind": "item",
+      "runtimeKey": "example_item",
+      "sourceCatalog": "items",
+      "sourceRecordId": "example_wrong_source_id",
+      "sourceHash": "<source-evidence-hash>",
+      "status": "rejected",
+      "rejectedBy": "<reviewer>",
+      "rejectedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "reason": "Wrong semantic item."
+    }
+  ],
+  "missingAssets": [
+    {
+      "id": "example-missing-authoritative-corpse",
+      "runtimeKind": "corpse",
+      "runtimeKey": "example_monster",
+      "authoritativeSourceId": "12345",
+      "sourceCatalog": "monster-xml",
+      "runtimeBehavior": "render no corpse and report in audit",
+      "status": "accepted-temporary-gap",
+      "reason": "Source id has no shipped Skin sprite yet."
+    }
+  ],
+  "visualRegressionSamples": [
+    {
+      "id": "example-neutral-outfit-sample",
+      "runtimeKind": "outfit",
+      "runtimeKey": "example_vocation",
+      "sampleType": "neutral-color",
+      "expected": "low-saturation gray remains gray through the runtime recolor path"
+    },
+    {
+      "id": "example-saturated-outfit-sample",
+      "runtimeKind": "outfit",
+      "runtimeKey": "example_vocation",
+      "sampleType": "saturated-color",
+      "expected": "saturated warm and cool colors remain distinct from neutral gray"
+    }
+  ],
+  "audits": {
+    "strictCutoverCommand": "npm run verify:assets",
+    "visualParityCommand": "npm run audit:visual-parity",
+    "actorCropCommand": "npm run audit:monster-visuals",
+    "corpseResolutionCommand": "npm run audit:corpses",
+    "outfitPaletteCommand": "npm run audit:outfit-palettes",
+    "statusEffectCommand": "npm run audit:status-effects",
+    "reviewWorkbenchCommand": "npm run audit:visual-source-review",
+    "generatedManifestCleanCommand": "npm run build:offline-manifest && git diff --exit-code"
+  },
+  "runtimeHandoff": {
+    "preloadActiveWaveAssets": true,
+    "usesVisualTimelineContract": true,
+    "timelineContractPath": "docs/hlever/inner-core/VISUAL_TIMELINE_CONTRACT.md"
+  }
+}

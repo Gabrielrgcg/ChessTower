@@ -1,0 +1,121 @@
+{
+  "$schema": "./STUDIO_RESOURCE_MANIFEST.schema.json",
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-15T00:00:00.000Z",
+  "resourcePolicy": {
+    "mountPolicy": "reference-only",
+    "generatedProjectResourceRoot": "resources/",
+    "adapterFile": "hlever.asset-review.json",
+    "largeAssetRule": "Do not commit resource archives, extracted resource packs, generated atlases, source art, local databases, or licensed mirrors to HLever or generated game repos.",
+    "consumerContracts": [
+      "Skin/SPRITE_ADOPTION_CONTRACTS.md",
+      "Skin/templates/sprite-adoption/visual-source-evidence.schema.json",
+      "Skin/templates/sprite-adoption/sprite-adoption-manifest.template.json",
+      "Inner Core/VISUAL_TIMELINE_CONTRACT.md"
+    ]
+  },
+  "resources": [
+    {
+      "id": "tibia-base-sprites",
+      "skinChoice": "tibia",
+      "displayName": "HL Tibia Base Sprites",
+      "kind": "resource-producer",
+      "status": "active",
+      "ownerRepo": null,
+      "localDefaultPath": "C:\\Users\\Fabio\\Downloads\\GameDev\\High Leverage Studios\\HL_TibiaBaseSprites",
+      "package": {
+        "defaultPackagePath": "C:\\Users\\Fabio\\Downloads\\GameDev\\High Leverage Studios\\HL_TibiaBaseSprites\\dist\\HL_TibiaBaseSprites_final.resource.zip",
+        "hashSidecarPath": "C:\\Users\\Fabio\\Downloads\\GameDev\\High Leverage Studios\\HL_TibiaBaseSprites\\dist\\HL_TibiaBaseSprites_final.resource.zip.sha256",
+        "expectedResourceId": "HL_TibiaBaseSprites_final",
+        "sha256": "2659167eff800ac1f757701287f2604dc106cbecea3060b4826e88da40a970ee",
+        "generatedAt": "2026-05-10T07:45:40.668Z",
+        "auditStatus": "ok",
+        "auditValidatedAt": "2026-05-10T10:55:59.072Z",
+        "zipSizeBytes": 1527815723,
+        "zipEntries": 430974
+      },
+      "counts": {
+        "items": 40749,
+        "equipment": 1284,
+        "effects": 200,
+        "missiles": 56,
+        "outfits": 1875,
+        "monsters": 1628,
+        "spells": 818,
+        "runes": 140,
+        "npcs": 988,
+        "maps": 32,
+        "ui": 846,
+        "sounds": 785,
+        "qmltypes": 35,
+        "aliases": 8833,
+        "tags": 300909,
+        "vocations": 11,
+        "uiKit": 1,
+        "uiAtlas": 1,
+        "final": {
+          "v2Gaps": 810,
+          "activeV3Fills": 249,
+          "reviewOnly": 561,
+          "finalDecisions": 810,
+          "v3SourceEvidence": 1924,
+          "v3MapLayers": 1057,
+          "v3UiReviewAssets": 829
+        }
+      },
+      "commands": {
+        "buildFinal": "npm run final",
+        "auditFinal": "npm run audit:final",
+        "fullRefresh": "npm run all"
+      },
+      "wiki": {
+        "toolId": "hl-wiki",
+        "refreshCommand": "npm run resources:refresh",
+        "reviewProjectCommand": "npm run review -- --project <studio-project-path>",
+        "exportSurface": "POST /api/review-export"
+      },
+      "handoffNotes": [
+        "This producer is local-only in the current workspace; no GitHub repository is registered for it yet.",
+        "The final package is the single project-ready resource archive. HLever records it by reference and hash only.",
+        "Use hlwiki to mount, inspect, review, and export resource decisions before adapting a new game.",
+        "Consumers that ship Skin-derived runtime sprites should adopt the HLever sprite evidence, review promotion, cutover, and visual timeline contracts."
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "id": "hlever",
+      "displayName": "HLever",
+      "kind": "studio-shell",
+      "status": "active",
+      "ownerRepo": "hileverage/hlever",
+      "localDefaultPath": "C:\\Users\\Fabio\\Downloads\\GameDev\\High Leverage Studios\\HLever",
+      "commands": {
+        "validate": "npm run validate",
+        "bootstrap": "powershell -ExecutionPolicy Bypass -File .\\bootstrap\\HLEVER_BOOTSTRAP.ps1"
+      },
+      "handoffNotes": [
+        "Owns engine-neutral workflow, runtime contracts, Skin conventions, bootstrap templates, and studio discovery docs."
+      ]
+    },
+    {
+      "id": "hl-wiki",
+      "displayName": "hlwiki",
+      "kind": "internal-tool",
+      "status": "active",
+      "ownerRepo": "hileverage/hlwiki",
+      "localDefaultPath": "C:\\Users\\Fabio\\Downloads\\GameDev\\High Leverage Studios\\HL_Wiki",
+      "commands": {
+        "refreshTibiaResources": "npm run resources:refresh",
+        "syncProject": "npm run resources:sync -- --project <studio-project-path>",
+        "reviewProject": "npm run review -- --project <studio-project-path>",
+        "validateCurrent": "npm run validate:current"
+      },
+      "handoffNotes": [
+        "Consumes project adapters named hlever.asset-review.json.",
+        "Ingests resource packs into ignored local storage and exposes read-only APIs plus local review/export workflows.",
+        "Review exports are local-only under reviews/local/ until a separate producer promotion task is approved."
+      ]
+    }
+  ]
+}

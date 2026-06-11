@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#14171f" />
+    <title>Chess Tower</title>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="game-stage" aria-label="Chess Tower game">
+        <canvas id="game-canvas" width="640" height="832"></canvas>
+      </section>
+
+      <section class="controls" aria-label="Run controls">
+        <div class="status-line" id="status-line">Loading tower...</div>
+        <div class="card-hand" id="card-hand" aria-label="Card hand"></div>
+        <div class="start-picker" aria-label="Starting piece">
+          <button type="button" data-starting-kind="pawn" aria-pressed="true">Pawn</button>
+          <button type="button" data-starting-kind="king" aria-pressed="false">King</button>
+        </div>
+        <div class="button-row">
+          <button id="new-run" type="button">New Run</button>
+          <button id="crown-piece" type="button" disabled>Crown</button>
+        </div>
+        <div class="upgrade-strip" id="upgrade-strip" aria-label="Persistent upgrades"></div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

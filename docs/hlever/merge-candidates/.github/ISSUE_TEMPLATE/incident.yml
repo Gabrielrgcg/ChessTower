@@ -1,0 +1,24 @@
+name: Incident
+description: Track runtime, public docs, account, deploy, or DNS incidents.
+title: "[Incident]: "
+labels: ["incident"]
+body:
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected and how?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Initial evidence
+      description: Include endpoint status, build metadata, logs, and timestamps. Do not include secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Mitigation plan
+      placeholder: "Maintenance mode, rollback, deploy fix, DNS correction, provider support ticket"

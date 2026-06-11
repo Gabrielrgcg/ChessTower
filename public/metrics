@@ -1,0 +1,3 @@
+# HELP chess_tower_build_info Local static build information.
+# TYPE chess_tower_build_info gauge
+chess_tower_build_info{service="chess-tower",mode="offline"} 1

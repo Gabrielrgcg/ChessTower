@@ -1,0 +1,20 @@
+tile and terrain update
+depth correction and draw order correction
+terrainedgefills that are from a origin tile at higher y or x coordinate than player position coordinate must be draw in front of player.
+tiles close to player pop up in the draw order for no reason.
+higher tiles next to player that have higher y or x coordinate must be always draw in front of player not only the adjascent ones.
+review all depth and draw order logic and look for optimizations and fixes.
+
+
+distance weapon throw or kawarimi: R(charge) + (atk + defense)
+
+
+long shot:
+make the z axis with no fixed reference so map can go up or down 'with no bounderies'
+
+
+
+
+lets make a layer rule for Tiles and "Terrain Edge Fills" effect.
+"Terrain Edge Fills" must never be draw on top of tiles that have bigger x coordinate nor bigger y coordinate, even if that tile is lower.
+draw order must be from left to right, then form top to bottom. so tiles to the right are on top of tiles to its left.

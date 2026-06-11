@@ -1,0 +1,17 @@
+{
+    "name":  "chesstower",
+    "version":  "0.1.0",
+    "private":  true,
+    "type":  "module",
+    "engines":  {
+                    "node":  "\u003e=22.6.0"
+                },
+    "scripts":  {
+                    "test":  "node --test \"studio/typescript-reference-kit/test/*.test.ts\"",
+                    "validate:json":  "node scripts/hlever/validate-json.mjs",
+                    "validate:links":  "node scripts/hlever/validate-links.mjs",
+                    "validate:secrets":  "node scripts/hlever/scan-secret-placeholders.mjs",
+                    "validate":  "npm run test \u0026\u0026 npm run validate:json \u0026\u0026 npm run validate:links \u0026\u0026 npm run validate:secrets",
+                    "task:done":  "npm run validate"
+                }
+}

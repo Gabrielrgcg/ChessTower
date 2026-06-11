@@ -1,0 +1,57 @@
+name: Staging Deploy
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:staging --if-present
+      - name: Install SSH key
+        env:
+          RUNTIME_DEPLOY_SSH_KEY: ${{ secrets.RUNTIME_DEPLOY_SSH_KEY }}
+        run: |
+          test -n "$RUNTIME_DEPLOY_SSH_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$RUNTIME_DEPLOY_SSH_KEY" > ~/.ssh/runtime_deploy
+          chmod 600 ~/.ssh/runtime_deploy
+      - name: Deploy staging
+        env:
+          RUNTIME_DEPLOY_KEY_PATH: ~/.ssh/runtime_deploy
+          RUNTIME_DEPLOY_HOST: ${{ vars.RUNTIME_DEPLOY_HOST }}
+          RUNTIME_DEPLOY_USER: ${{ vars.RUNTIME_DEPLOY_USER }}
+          RUNTIME_DEPLOY_PATH: ${{ vars.RUNTIME_DEPLOY_PATH }}
+          RUNTIME_SERVICE: ${{ vars.RUNTIME_SERVICE }}
+          RUNTIME_URL: ${{ vars.RUNTIME_URL }}
+        run: npm run staging:deploy
+      - name: Verify staging runtime
+        env:
+          RUNTIME_URL: ${{ vars.RUNTIME_URL }}
+        run: |
+          test -n "$RUNTIME_URL"
+          curl --fail --show-error --silent "$RUNTIME_URL/healthz" >/tmp/healthz.json
+          curl --fail --show-error --silent "$RUNTIME_URL/metrics" >/tmp/metrics.txt
+          curl --fail --show-error --silent "$RUNTIME_URL/api/release" >/tmp/release.json

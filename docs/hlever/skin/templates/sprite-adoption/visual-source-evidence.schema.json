@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://highleveragestudios.local/hlever/visual-source-evidence.schema.json",
+  "title": "HLever Visual Source Evidence",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "runtime",
+    "source",
+    "selection",
+    "asset",
+    "geometry"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "required": ["runtime"],
+        "properties": {
+          "runtime": {
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "const": "corpse"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "selection": {
+            "required": ["authority"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["runtime", "geometry"],
+        "properties": {
+          "runtime": {
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "enum": ["outfit", "vocation"]
+              }
+            }
+          },
+          "geometry": {
+            "required": ["recolorable"],
+            "properties": {
+              "recolorable": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "geometry": {
+            "required": ["directions", "paletteMaskPath", "addonPaths", "palette"]
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["kind", "key"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["item", "equipment", "scene", "monster", "npc", "outfit", "spell", "effect", "missile", "ui", "currency", "corpse", "vocation", "other"]
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayName": {
+          "type": "string"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["packageId", "packageSha256", "catalog", "recordId"],
+      "additionalProperties": false,
+      "properties": {
+        "packageId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packageSha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "catalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recordId": {
+          "type": ["string", "number"]
+        },
+        "recordName": {
+          "type": "string"
+        },
+        "sourcePath": {
+          "type": "string"
+        },
+        "sourceHash": {
+          "type": "string"
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "required": ["confidence", "rule"],
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "type": "string",
+          "enum": ["exact-package", "semantic-catalog-match", "verified-client-id", "wiki-backed", "review-promoted", "explicit-project-override", "non-game-exception", "temporary-exception"]
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewStatus": {
+          "type": "string",
+          "enum": ["not-required", "pending", "approved", "rejected", "blocked"]
+        },
+        "reviewId": {
+          "type": "string"
+        },
+        "overrideReason": {
+          "type": "string"
+        },
+        "authority": {
+          "type": "object",
+          "required": ["sourceKind", "sourceId", "precedence"],
+          "additionalProperties": false,
+          "properties": {
+            "sourceKind": {
+              "type": "string",
+              "enum": ["xml-look-corpse", "client-visual-id", "catalog-record-id", "project-override", "manual-review"]
+            },
+            "sourceId": {
+              "type": ["string", "number"]
+            },
+            "precedence": {
+              "type": "string",
+              "enum": ["authoritative", "reviewed-fallback", "temporary-exception"]
+            },
+            "beatsSlugOrName": {
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": ["publicPath"],
+      "additionalProperties": false,
+      "properties": {
+        "publicPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "framePath": {
+          "type": "string"
+        },
+        "atlasPath": {
+          "type": "string"
+        },
+        "atlasSlice": {
+          "type": "string"
+        }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "required": ["sourceCanvas", "renderMode"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceCanvas": {
+          "$ref": "#/$defs/rect"
+        },
+        "renderTrim": {
+          "$ref": "#/$defs/rect"
+        },
+        "battlefieldFootprint": {
+          "$ref": "#/$defs/rect"
+        },
+        "uiBounds": {
+          "$ref": "#/$defs/rect"
+        },
+        "anchors": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/point"
+          }
+        },
+        "directions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "renderMode": {
+          "type": "string",
+          "enum": ["static-idle", "walking-sheet", "effect-sequence", "missile-sequence", "ui-atlas-state", "single-frame", "stack-stage"]
+        },
+        "recolorable": {
+          "type": "boolean",
+          "default": false
+        },
+        "paletteMaskPath": {
+          "type": "string"
+        },
+        "addonPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "palette": {
+          "$ref": "#/$defs/palette"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "rect": {
+      "type": "object",
+      "required": ["width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number",
+          "default": 0
+        },
+        "y": {
+          "type": "number",
+          "default": 0
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "point": {
+      "type": "object",
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    },
+    "palette": {
+      "type": "object",
+      "required": ["maskPath", "mode", "channels", "defaultColors", "neutralTargets"],
+      "additionalProperties": false,
+      "properties": {
+        "maskPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["grayscale-mask", "indexed-palette", "engine-native"]
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["head", "primary", "secondary", "detail", "addon", "other"]
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "defaultColors": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        "neutralTargets": {
+          "type": "object",
+          "required": ["sampleColors", "maxSaturation"],
+          "additionalProperties": false,
+          "properties": {
+            "sampleColors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "minItems": 1
+            },
+            "maxSaturation": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

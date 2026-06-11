@@ -1,0 +1,26 @@
+{
+  "name": "chess-tower",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test --experimental-strip-types \"test/*.test.ts\"",
+    "validate:json": "node scripts/hlever/validate-json.mjs",
+    "validate:card-assets": "node scripts/hlever/validate-card-assets.mjs",
+    "validate:links": "node scripts/hlever/validate-links.mjs",
+    "validate:secrets": "node scripts/hlever/scan-secret-placeholders.mjs",
+    "validate": "npm run test && npm run validate:json && npm run validate:card-assets && npm run validate:links && npm run validate:secrets && npm run build",
+    "task:done": "npm run validate"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  }
+}
