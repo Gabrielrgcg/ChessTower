@@ -64,17 +64,26 @@ const cleanState = (): GameState => {
   return state
 }
 
-test('card catalog validates supported card sprites from public assets', () => {
-  const catalogUrl = new URL('../public/assets/sprites/chess_card_sprites.json', import.meta.url)
+test('card catalog validates supported card sheet sprites from public assets', () => {
+  const catalogUrl = new URL('../public/assets/sprites/chess_cards_pixel_art_two_sheets.json', import.meta.url)
   const catalog = normalizeCardCatalog(JSON.parse(fs.readFileSync(catalogUrl, 'utf8')))
   const supported = supportedCardDefinitions(catalog)
 
   assert.equal(supported.length, 5)
-  for (const cardDefinition of catalog.cards) {
-    assert.match(cardDefinition.sprite, /^card.*\.png$/u)
-    assert.equal(fs.existsSync(new URL(`../public/assets/sprites/${cardDefinition.sprite}`, import.meta.url)), true)
+  assert.equal(catalog.back.id, 'card_back')
+  for (const cardDefinition of [...catalog.cards, catalog.back]) {
+    const sprite = cardDefinition.sprite
+    assert.match(sprite.sheet, /^chess_cards_pixel_art_sheet_.*\.png$/u)
+    assert.equal(fs.existsSync(new URL(`../public/assets/sprites/${sprite.sheet}`, import.meta.url)), true)
+    assert.equal(sprite.width, 416)
+    assert.equal(sprite.height, 496)
+    assert.equal(sprite.sheetWidth, 1664)
+    assert.equal(sprite.sheetHeight, 992)
+    assert.equal(sprite.x % sprite.width, 0)
+    assert.equal(sprite.y % sprite.height, 0)
+    assert.equal(sprite.x + sprite.width <= sprite.sheetWidth, true)
+    assert.equal(sprite.y + sprite.height <= sprite.sheetHeight, true)
   }
-  assert.equal(fs.existsSync(new URL(`../public/assets/sprites/${catalog.back.sprite}`, import.meta.url)), true)
 })
 
 test('chests spawn only under the configured chance and use empty top-area tiles', () => {

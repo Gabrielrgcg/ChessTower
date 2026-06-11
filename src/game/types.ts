@@ -72,11 +72,21 @@ export interface Profile {
   pieces: PieceProgression
 }
 
+export interface CardSpriteDefinition {
+  sheet: string
+  sheetWidth: number
+  sheetHeight: number
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface CardDefinition {
   id: string
   name: string
   effect: string
-  sprite: string
+  sprite: CardSpriteDefinition
 }
 
 export interface CardInstance {
@@ -110,6 +120,7 @@ export interface GameState {
   specialTiles: SpecialTile[]
   cardHand: CardInstance[]
   cardPlayedThisTurn: boolean
+  runSeed: number
   floor: number
   turn: number
   heroicMovesSinceScroll: number

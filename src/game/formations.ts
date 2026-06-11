@@ -10,9 +10,59 @@ import {
   type PlayableKind,
 } from './types.ts'
 import { finiteMoveBudgetFor } from './persistence.ts'
+import { seededInt, seededValue } from './random.ts'
 import { pieceAt } from './rules.ts'
 
 export const FORMATIONS: FormationTemplate[] = [
+  {
+    name: 'pawn-defense',
+    minFloor: 0,
+    mirrorable: true,
+    pieces: [
+      { side: 'enemy', kind: 'pawn', x: 2, rowFromTop: 0 },
+      { side: 'enemy', kind: 'pawn', x: 4, rowFromTop: 0 },
+      { side: 'enemy', kind: 'pawn', x: 3, rowFromTop: 1, modifiers: ['immobile'] },
+      { side: 'ally', kind: 'pawn', x: 5, rowFromTop: 2, movesRemaining: 2 },
+    ],
+  },
+  {
+    name: 'pawn-wall',
+    minFloor: 1,
+    mirrorable: true,
+    pieces: [
+      { side: 'enemy', kind: 'pawn', x: 1, rowFromTop: 0 },
+      { side: 'enemy', kind: 'pawn', x: 3, rowFromTop: 0 },
+      { side: 'enemy', kind: 'pawn', x: 5, rowFromTop: 0 },
+      { side: 'enemy', kind: 'pawn', x: 2, rowFromTop: 1, modifiers: ['immobile'] },
+      { side: 'enemy', kind: 'pawn', x: 4, rowFromTop: 1, modifiers: ['immobile'] },
+      { side: 'ally', kind: 'pawn', x: 6, rowFromTop: 2, movesRemaining: 2 },
+    ],
+  },
+  {
+    name: 'guarded-file',
+    minFloor: 4,
+    mirrorable: true,
+    pieces: [
+      { side: 'enemy', kind: 'rook', x: 3, rowFromTop: 0, modifiers: ['immobile'] },
+      { side: 'enemy', kind: 'pawn', x: 2, rowFromTop: 1 },
+      { side: 'enemy', kind: 'pawn', x: 4, rowFromTop: 1 },
+      { side: 'enemy', kind: 'pawn', x: 3, rowFromTop: 2, modifiers: ['immobile'] },
+      { side: 'ally', kind: 'rook', x: 5, rowFromTop: 2, movesRemaining: 2 },
+    ],
+  },
+  {
+    name: 'mixed-defense',
+    minFloor: 8,
+    mirrorable: true,
+    pieces: [
+      { side: 'enemy', kind: 'bishop', x: 2, rowFromTop: 0 },
+      { side: 'enemy', kind: 'knight', x: 5, rowFromTop: 0 },
+      { side: 'enemy', kind: 'pawn', x: 3, rowFromTop: 1 },
+      { side: 'enemy', kind: 'pawn', x: 4, rowFromTop: 1 },
+      { side: 'enemy', kind: 'pawn', x: 2, rowFromTop: 2, modifiers: ['immobile'] },
+      { side: 'ally', kind: 'bishop', x: 6, rowFromTop: 2, movesRemaining: 2 },
+    ],
+  },
   {
     name: 'pawn-ladder',
     minFloor: 0,
@@ -135,11 +185,6 @@ const unlockedOrPawn = (state: GameState, kind: PlayableKind): PlayableKind => {
   return state.profile.pieces[kind].unlocked ? kind : 'pawn'
 }
 
-const seededValue = (seed: number): number => {
-  const value = Math.sin(seed * 12.9898) * 43758.5453
-  return value - Math.floor(value)
-}
-
 const clampEnemyMoves = (moves: number): number => {
   return Math.max(ENEMY_MIN_MOVES, Math.min(ENEMY_MAX_MOVES, moves))
 }
@@ -149,14 +194,13 @@ const seededEnemyMoves = (state: GameState, spec: FormationPieceSpec): number =>
     return clampEnemyMoves(spec.movesRemaining)
   }
 
-  const span = ENEMY_MAX_MOVES - ENEMY_MIN_MOVES + 1
-  const seed = (state.floor + 1) * 197 + spec.x * 17 + spec.rowFromTop * 23 + spec.kind.length * 29
-  return ENEMY_MIN_MOVES + Math.floor(seededValue(seed) * span)
+  const salt = (state.floor + 1) * 197 + spec.x * 17 + spec.rowFromTop * 23 + spec.kind.length * 29
+  return seededInt(state.runSeed, salt, ENEMY_MIN_MOVES, ENEMY_MAX_MOVES)
 }
 
-export const chooseFormation = (floor: number): FormationTemplate => {
+export const chooseFormation = (floor: number, runSeed = 0): FormationTemplate => {
   const available = FORMATIONS.filter((formation) => formation.minFloor <= floor)
-  const index = Math.floor(seededValue(floor + 17) * available.length)
+  const index = seededInt(runSeed, floor * 43 + 17, 0, available.length - 1)
   return available[Math.max(0, Math.min(index, available.length - 1))]
 }
 
@@ -165,8 +209,20 @@ const mirrorSpec = (spec: FormationPieceSpec): FormationPieceSpec => ({
   x: BOARD_COLUMNS - 1 - spec.x,
 })
 
-const createPieceFromSpec = (state: GameState, spec: FormationPieceSpec, mirrored: boolean): Piece | null => {
-  const resolvedSpec = mirrored ? mirrorSpec(spec) : spec
+const shiftSpec = (spec: FormationPieceSpec, offset: number): FormationPieceSpec => ({
+  ...spec,
+  x: spec.x + offset,
+})
+
+const chooseHorizontalOffset = (state: GameState, specs: FormationPieceSpec[], formationName: string): number => {
+  const minX = Math.min(...specs.map((spec) => spec.x))
+  const maxX = Math.max(...specs.map((spec) => spec.x))
+  const minOffset = -minX
+  const maxOffset = BOARD_COLUMNS - 1 - maxX
+  return seededInt(state.runSeed, state.floor * 67 + formationName.length, minOffset, maxOffset)
+}
+
+const createPieceFromSpec = (state: GameState, resolvedSpec: FormationPieceSpec): Piece | null => {
   const y = VISIBLE_ROWS - 1 - resolvedSpec.rowFromTop
   if (pieceAt(state.pieces, resolvedSpec.x, y)) {
     return null
@@ -194,12 +250,16 @@ const createPieceFromSpec = (state: GameState, spec: FormationPieceSpec, mirrore
 }
 
 export const spawnFormation = (state: GameState): string => {
-  const formation = chooseFormation(state.floor)
-  const mirrored = formation.mirrorable && seededValue(state.floor + 41) > 0.5
+  const formation = chooseFormation(state.floor, state.runSeed)
+  const mirrored = formation.mirrorable && seededValue(state.runSeed, state.floor * 59 + 41) > 0.5
+  const mirroredSpecs = formation.pieces.map((spec) => (mirrored ? mirrorSpec(spec) : spec))
+  const horizontalOffset = chooseHorizontalOffset(state, mirroredSpecs, formation.name)
+  const specs = mirroredSpecs.map((spec) => shiftSpec(spec, horizontalOffset))
+  const formationLabel = `Wave ${state.floor + 1}: ${formation.name}${mirrored ? ' mirrored' : ''}`
   let spawned = 0
 
-  for (const spec of formation.pieces) {
-    const piece = createPieceFromSpec(state, spec, mirrored)
+  for (const spec of specs) {
+    const piece = createPieceFromSpec(state, spec)
     if (piece) {
       state.pieces.push(piece)
       spawned += 1
@@ -209,11 +269,11 @@ export const spawnFormation = (state: GameState): string => {
         atMs: state.serverTimeMs,
         pieceId: piece.id,
         to: { x: piece.x, y: piece.y },
-        label: formation.name,
+        label: formationLabel,
       })
     }
   }
 
-  state.lastFormation = `${formation.name}${mirrored ? ' mirrored' : ''}`
-  return spawned > 0 ? state.lastFormation : `${formation.name} blocked`
+  state.lastFormation = formationLabel
+  return spawned > 0 ? state.lastFormation : `${formationLabel} blocked`
 }

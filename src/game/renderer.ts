@@ -405,6 +405,10 @@ export class GameRenderer {
       ctx.stroke()
     }
 
+    if (piece.heroic) {
+      ctx.drawImage(this.assets.crownOverlay, x, y - TILE_SIZE, TILE_SIZE, TILE_SIZE * 2)
+    }
+
     if (piece.movesRemaining !== null) {
       const badgeColor = piece.side === 'enemy' ? '#5b2430' : '#1d3f54'
       this.drawBadge(x + 39, y + 42, String(piece.movesRemaining), badgeColor)

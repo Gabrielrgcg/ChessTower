@@ -91,6 +91,27 @@ const formatKind = (kind: PlayableKind): string => {
   }
 }
 
+const createCardArt = (definition: CardDefinition): HTMLElement => {
+  const { sprite } = definition
+  const art = document.createElement('span')
+  art.className = 'card-art'
+  art.style.setProperty('--sprite-width', String(sprite.width))
+  art.style.setProperty('--sprite-height', String(sprite.height))
+  art.style.setProperty('--sheet-columns', String(sprite.sheetWidth / sprite.width))
+  art.style.setProperty('--sheet-rows', String(sprite.sheetHeight / sprite.height))
+  art.style.setProperty('--sprite-column', String(sprite.x / sprite.width))
+  art.style.setProperty('--sprite-row', String(sprite.y / sprite.height))
+
+  const image = document.createElement('img')
+  image.src = `/assets/sprites/${sprite.sheet}`
+  image.alt = ''
+  image.loading = 'lazy'
+  image.decoding = 'async'
+  image.setAttribute('aria-hidden', 'true')
+  art.append(image)
+  return art
+}
+
 const clearCardSelection = (): void => {
   selectedCardInstanceId = null
   selectedCardTargets = []
@@ -133,12 +154,7 @@ const renderCardHand = (): void => {
     button.setAttribute('aria-label', button.title)
 
     if (definition) {
-      const image = document.createElement('img')
-      image.src = `/assets/sprites/${definition.sprite}`
-      image.alt = definition.name
-      image.loading = 'lazy'
-      image.decoding = 'async'
-      button.append(image)
+      button.append(createCardArt(definition))
 
       const name = document.createElement('span')
       name.className = 'card-name'

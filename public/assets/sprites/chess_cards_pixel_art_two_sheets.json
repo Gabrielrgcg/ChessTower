@@ -1,0 +1,154 @@
+{
+  "assetSet": "Chess card pixel-art sheets v2",
+  "generatedWith": "built-in image_gen",
+  "postProcess": "Copied generated sheets into outputs and padded canvases only; no scaling or shrinking was applied.",
+  "sheetWidth": 1664,
+  "sheetHeight": 992,
+  "columns": 4,
+  "rows": 2,
+  "tileWidth": 416,
+  "tileHeight": 496,
+  "order": "left-to-right, top-to-bottom",
+  "sheets": [
+    {
+      "id": "sheet_A_cards_01_08",
+      "file": "chess_cards_pixel_art_sheet_A_cards_01_08.png",
+      "cards": [
+        {
+          "index": 0,
+          "id": "destroy_target_piece",
+          "name": "Rupture",
+          "effect": "Destroy one target enemy piece.",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "index": 1,
+          "id": "borrowed_crown",
+          "name": "Borrowed Crown",
+          "effect": "Take control of one enemy piece for 1 turn. If it survives, it returns to its owner.",
+          "x": 416,
+          "y": 0
+        },
+        {
+          "index": 2,
+          "id": "teleport_piece",
+          "name": "Blink",
+          "effect": "Teleport one of your pieces to an empty square.",
+          "x": 832,
+          "y": 0
+        },
+        {
+          "index": 3,
+          "id": "royal_shield",
+          "name": "Royal Shield",
+          "effect": "Choose one of your pieces. It cannot be captured until your next turn.",
+          "x": 1248,
+          "y": 0
+        },
+        {
+          "index": 4,
+          "id": "time_rewind",
+          "name": "Time Rewind",
+          "effect": "Move the last moved piece back to its previous square if that square is empty.",
+          "x": 0,
+          "y": 496
+        },
+        {
+          "index": 5,
+          "id": "pawn_uprising",
+          "name": "Pawn Uprising",
+          "effect": "One pawn you control becomes a queen for 1 turn, then reverts if still on the board.",
+          "x": 416,
+          "y": 496
+        },
+        {
+          "index": 6,
+          "id": "frozen_square",
+          "name": "Frozen Square",
+          "effect": "Freeze one enemy piece. It cannot move on its controller's next turn.",
+          "x": 832,
+          "y": 496
+        },
+        {
+          "index": 7,
+          "id": "swap_places",
+          "name": "Swap Places",
+          "effect": "Swap the positions of two allied pieces.",
+          "x": 1248,
+          "y": 496
+        }
+      ]
+    },
+    {
+      "id": "sheet_B_cards_09_15_back",
+      "file": "chess_cards_pixel_art_sheet_B_cards_09_15_back.png",
+      "cards": [
+        {
+          "index": 8,
+          "id": "mirror_move",
+          "name": "Mirror Move",
+          "effect": "Copy the opponent's last normal move with one of your pieces, if the copied move is legal.",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "index": 9,
+          "id": "phantom_decoy",
+          "name": "Phantom Decoy",
+          "effect": "Create a decoy pawn on an empty square. It blocks movement, cannot capture, and disappears at the start of your next turn.",
+          "x": 416,
+          "y": 0
+        },
+        {
+          "index": 10,
+          "id": "diagonal_strike",
+          "name": "Diagonal Strike",
+          "effect": "Choose one bishop or queen you control. Destroy the first enemy piece on one diagonal from it.",
+          "x": 832,
+          "y": 0
+        },
+        {
+          "index": 11,
+          "id": "knights_leap",
+          "name": "Knight's Leap",
+          "effect": "Choose one of your pieces. This turn, it may move like a knight once.",
+          "x": 1248,
+          "y": 0
+        },
+        {
+          "index": 12,
+          "id": "anywhere_castle",
+          "name": "Anywhere Castle",
+          "effect": "Castle with your king and one rook if both pieces are still on the board and neither is currently threatened.",
+          "x": 0,
+          "y": 496
+        },
+        {
+          "index": 13,
+          "id": "sacrifice_pact",
+          "name": "Sacrifice Pact",
+          "effect": "Destroy one of your pieces to destroy one adjacent enemy piece.",
+          "x": 416,
+          "y": 496
+        },
+        {
+          "index": 14,
+          "id": "check_breaker",
+          "name": "Check Breaker",
+          "effect": "Cancel check once this turn. The king must still make a legal move before the turn ends.",
+          "x": 832,
+          "y": 496
+        },
+        {
+          "index": 15,
+          "id": "card_back",
+          "name": "Card Back",
+          "effect": "Back side card sprite.",
+          "x": 1248,
+          "y": 496
+        }
+      ]
+    }
+  ]
+}

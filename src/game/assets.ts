@@ -1,4 +1,4 @@
-import { normalizeCardCatalog, supportedCardDefinitions } from './cards.ts'
+import { normalizeCardCatalog, supportedCardDefinitions, type CardCatalog } from './cards.ts'
 import type { CardDefinition } from './types.ts'
 
 export interface GameAssets {
@@ -9,7 +9,7 @@ export interface GameAssets {
   hud: HTMLImageElement
   chestClosed: HTMLImageElement
   chestOpen: HTMLImageElement
-  cardBack: HTMLImageElement
+  crownOverlay: HTMLImageElement
   cardDefinitions: CardDefinition[]
 }
 
@@ -30,17 +30,31 @@ const loadImageWithFallback = async (src: string, fallback: string): Promise<HTM
   }
 }
 
-const loadCardDefinitions = async (): Promise<CardDefinition[]> => {
-  const response = await fetch('/assets/sprites/chess_card_sprites.json')
+const loadCardCatalog = async (): Promise<CardCatalog> => {
+  const response = await fetch('/assets/sprites/chess_cards_pixel_art_two_sheets.json')
   if (!response.ok) {
     throw new Error(`Could not load card catalog: ${response.status}`)
   }
-  const catalog = normalizeCardCatalog(await response.json())
-  return supportedCardDefinitions(catalog)
+  return normalizeCardCatalog(await response.json())
 }
 
 export const loadAssets = async (): Promise<GameAssets> => {
-  const [playerSheet, enemySheet, tiles, noiseTexture, hud, chestClosed, chestOpen, cardBack, cardDefinitions] = await Promise.all([
+  const cardCatalog = await loadCardCatalog()
+  const cardSheetFiles = new Set(
+    [...cardCatalog.cards, cardCatalog.back].map((definition) => definition.sprite.sheet),
+  )
+  await Promise.all([...cardSheetFiles].map((sheet) => loadImage(`/assets/sprites/${sheet}`)))
+
+  const [
+    playerSheet,
+    enemySheet,
+    tiles,
+    noiseTexture,
+    hud,
+    chestClosed,
+    chestOpen,
+    crownOverlay,
+  ] = await Promise.all([
     loadImage('/assets/sprites/player_sheet.png'),
     loadImage('/assets/sprites/enemy_sheet.png'),
     loadImage('/assets/sprites/tiles.png'),
@@ -48,8 +62,7 @@ export const loadAssets = async (): Promise<GameAssets> => {
     loadImage('/assets/sprites/HUD.png'),
     loadImageWithFallback('/assets/sprites/chest_closed.png', '/assets/sprites/chest.png'),
     loadImageWithFallback('/assets/sprites/chest_open.png', '/assets/sprites/chest.png'),
-    loadImage('/assets/sprites/card_back.png'),
-    loadCardDefinitions(),
+    loadImage('/assets/sprites/crown.png'),
   ])
 
   return {
@@ -60,7 +73,7 @@ export const loadAssets = async (): Promise<GameAssets> => {
     hud,
     chestClosed,
     chestOpen,
-    cardBack,
-    cardDefinitions,
+    crownOverlay,
+    cardDefinitions: supportedCardDefinitions(cardCatalog),
   }
 }

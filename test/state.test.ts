@@ -5,7 +5,15 @@ import { FORMATIONS, chooseFormation, spawnFormation } from '../src/game/formati
 import { createDefaultProfile } from '../src/game/persistence.ts'
 import { getLegalMoves } from '../src/game/rules.ts'
 import { createGame, findHero, performPlayerMove } from '../src/game/state.ts'
-import { ENEMY_MAX_MOVES, ENEMY_MIN_MOVES, PLAYER_MOVE_ANIMATION_MS, type GameState, type Piece } from '../src/game/types.ts'
+import {
+  BOARD_COLUMNS,
+  ENEMY_MAX_MOVES,
+  ENEMY_MIN_MOVES,
+  PLAYER_MOVE_ANIMATION_MS,
+  VISIBLE_ROWS,
+  type GameState,
+  type Piece,
+} from '../src/game/types.ts'
 
 const setPieces = (state: GameState, pieces: Piece[]): void => {
   state.pieces = pieces
@@ -44,6 +52,35 @@ const newFormationEnemyCounts: Record<(typeof newFormationNames)[number], number
   'skewer-guard': 5,
 }
 const allowedNewEnemyKinds = new Set(['pawn', 'knight', 'bishop', 'rook'])
+const proceduralStructureNames = new Set(['pawn-defense', 'pawn-wall', 'guarded-file', 'mixed-defense'])
+const promotionKinds = new Set(['rook', 'bishop', 'knight', 'queen'])
+
+const startSignature = (state: GameState): Array<Pick<Piece, 'kind' | 'side' | 'x' | 'y' | 'heroic' | 'movesRemaining'>> => {
+  return state.pieces
+    .filter((piece) => piece.side === 'ally' && piece.y <= 2)
+    .map((piece) => ({
+      kind: piece.kind,
+      side: piece.side,
+      x: piece.x,
+      y: piece.y,
+      heroic: piece.heroic,
+      movesRemaining: piece.movesRemaining,
+    }))
+    .sort((left, right) => Number(right.heroic) - Number(left.heroic) || left.x - right.x)
+}
+
+const waveSignature = (state: GameState): Array<Pick<Piece, 'kind' | 'side' | 'x' | 'y' | 'movesRemaining'>> => {
+  return state.pieces
+    .filter((piece) => piece.y >= VISIBLE_ROWS - 3)
+    .map((piece) => ({
+      kind: piece.kind,
+      side: piece.side,
+      x: piece.x,
+      y: piece.y,
+      movesRemaining: piece.movesRemaining,
+    }))
+    .sort((left, right) => left.y - right.y || left.x - right.x || left.kind.localeCompare(right.kind))
+}
 
 test('finite allied pieces expire and clear their tile after their last move', () => {
   const state = createGame(createDefaultProfile())
@@ -76,6 +113,53 @@ test('finite allied pieces gain three moves when capturing an enemy', () => {
   assert.equal(movedFinite?.movesRemaining, 3)
   assert.equal(state.pieces.some((piece) => piece.id === target.id), false)
   assert.match(state.message, /gained 3 moves/u)
+})
+
+test('allied pawns promote to a random major piece on the last row instead of expiring', () => {
+  const state = createGame(createDefaultProfile(), 'pawn', 321)
+  const hero = ally({ id: 'hero', kind: 'king', x: 0, y: 0, heroic: true })
+  const pawn = ally({ id: 'promoter', kind: 'pawn', x: 3, y: VISIBLE_ROWS - 2, movesRemaining: 1 })
+  setPieces(state, [hero, pawn])
+
+  state.selectedPieceId = pawn.id
+  const result = performPlayerMove(state, { x: 3, y: VISIBLE_ROWS - 1 })
+
+  const promoted = state.pieces.find((piece) => piece.id === pawn.id)
+  assert.equal(result.moved, true)
+  assert.equal(promoted?.x, 3)
+  assert.equal(promoted?.y, VISIBLE_ROWS - 1)
+  assert.equal(promotionKinds.has(promoted?.kind ?? ''), true)
+  assert.ok((promoted?.movesRemaining ?? 0) >= 3)
+  assert.match(state.message, /promoted to/u)
+})
+
+test('special pawns can promote with their two-square move', () => {
+  const state = createGame(createDefaultProfile(), 'pawn', 654)
+  const hero = ally({ id: 'hero', kind: 'king', x: 0, y: 0, heroic: true })
+  const pawn = ally({ id: 'special-promoter', kind: 'specialPawn', x: 4, y: VISIBLE_ROWS - 3, movesRemaining: 1 })
+  setPieces(state, [hero, pawn])
+
+  state.selectedPieceId = pawn.id
+  performPlayerMove(state, { x: 4, y: VISIBLE_ROWS - 1 })
+
+  const promoted = state.pieces.find((piece) => piece.id === pawn.id)
+  assert.equal(promotionKinds.has(promoted?.kind ?? ''), true)
+  assert.equal(promoted?.y, VISIBLE_ROWS - 1)
+  assert.ok((promoted?.movesRemaining ?? 0) >= 3)
+})
+
+test('heroic pawns promote and stay heroic with unlimited moves', () => {
+  const state = createGame(createDefaultProfile(), 'pawn', 987)
+  const hero = ally({ id: 'hero-pawn', kind: 'pawn', x: 2, y: VISIBLE_ROWS - 2, heroic: true })
+  setPieces(state, [hero])
+
+  state.selectedPieceId = hero.id
+  performPlayerMove(state, { x: 2, y: VISIBLE_ROWS - 1 })
+
+  const promoted = state.pieces.find((piece) => piece.id === hero.id)
+  assert.equal(promotionKinds.has(promoted?.kind ?? ''), true)
+  assert.equal(promoted?.heroic, true)
+  assert.equal(promoted?.movesRemaining, null)
 })
 
 test('finite enemy pieces expire and clear their tile after spending their move budget', () => {
@@ -138,6 +222,25 @@ test('enemy pieces gain capture moves without exceeding the max budget', () => {
   assert.equal(movedCaptor?.movesRemaining, ENEMY_MAX_MOVES)
   assert.equal(state.pieces.some((piece) => piece.id === target.id), false)
   assert.ok(state.events.some((event) => event.type === 'unit_captured' && event.pieceId === target.id))
+})
+
+test('enemy pawns promote on their last row with a bounded move budget', () => {
+  const state = createGame(createDefaultProfile(), 'pawn', 753)
+  const hero = ally({ id: 'hero', kind: 'king', x: 7, y: VISIBLE_ROWS - 1, heroic: true })
+  const finite = ally({ id: 'finite', kind: 'pawn', x: 0, y: 1, movesRemaining: 10 })
+  const pawn = enemy({ id: 'enemy-promoter', kind: 'pawn', x: 4, y: 1, movesRemaining: ENEMY_MIN_MOVES })
+  setPieces(state, [hero, finite, pawn])
+
+  state.selectedPieceId = finite.id
+  const result = performPlayerMove(state, { x: 0, y: 2 })
+
+  const promoted = state.pieces.find((piece) => piece.id === pawn.id)
+  assert.equal(result.enemyMoves, 1)
+  assert.equal(promoted?.x, 4)
+  assert.equal(promoted?.y, 0)
+  assert.equal(promotionKinds.has(promoted?.kind ?? ''), true)
+  assert.ok((promoted?.movesRemaining ?? 0) >= ENEMY_MIN_MOVES)
+  assert.ok((promoted?.movesRemaining ?? 0) <= ENEMY_MAX_MOVES)
 })
 
 test('normal captures emit capture animation events with removed piece data', () => {
@@ -258,6 +361,48 @@ test('new runs can start with a pawn or king hero', () => {
   assert.equal(findHero(kingRun)?.kind, 'king')
 })
 
+test('seeded runs reproduce the same start positions and first wave', () => {
+  const first = createGame(createDefaultProfile(), 'pawn', 12345)
+  const second = createGame(createDefaultProfile(), 'pawn', 12345)
+
+  assert.equal(first.runSeed, 12345)
+  assert.equal(second.runSeed, 12345)
+  assert.deepEqual(startSignature(first), startSignature(second))
+  assert.equal(first.lastFormation, second.lastFormation)
+  assert.deepEqual(waveSignature(first), waveSignature(second))
+})
+
+test('different run seeds can vary start positions or wave labels', () => {
+  const baseline = createGame(createDefaultProfile(), 'pawn', 100)
+  const baselineStart = JSON.stringify(startSignature(baseline))
+  const varied = Array.from({ length: 12 }, (_, index) => createGame(createDefaultProfile(), 'pawn', 101 + index))
+    .some((state) => JSON.stringify(startSignature(state)) !== baselineStart || state.lastFormation !== baseline.lastFormation)
+
+  assert.equal(varied, true)
+})
+
+test('seeded starts preserve the selected hero and safe lower-board support', () => {
+  for (const startingKind of ['pawn', 'king'] as const) {
+    for (const seed of [7, 42, 12345, 98765]) {
+      const state = createGame(createDefaultProfile(), startingKind, seed)
+      const hero = findHero(state)
+      const lowerAllies = state.pieces.filter((piece) => piece.side === 'ally' && piece.y <= 2)
+      const finiteSupport = lowerAllies.find((piece) => !piece.heroic)
+      const occupied = new Set(lowerAllies.map((piece) => `${piece.x},${piece.y}`))
+
+      assert.equal(hero?.kind, startingKind)
+      assert.equal(hero?.y, 1)
+      assert.ok(hero && hero.x >= 1 && hero.x < BOARD_COLUMNS - 1)
+      assert.equal(lowerAllies.length, 2)
+      assert.equal(occupied.size, lowerAllies.length)
+      assert.equal(finiteSupport?.kind, 'pawn')
+      assert.equal(finiteSupport?.y, 2)
+      assert.notEqual(finiteSupport?.x, hero?.x)
+      assert.equal(finiteSupport?.movesRemaining, 2)
+    }
+  }
+})
+
 test('enemy formations never include more than one queen', () => {
   for (const formation of FORMATIONS) {
     const queenCount = formation.pieces.filter((piece) => piece.side === 'enemy' && piece.kind === 'queen').length
@@ -281,11 +426,32 @@ test('new enemy formations add three to five pawn knight bishop rook enemies', (
   }
 })
 
+test('procedural pawn defense structure recipes are available', () => {
+  const structures = FORMATIONS.filter((formation) => proceduralStructureNames.has(formation.name))
+
+  assert.equal(structures.length, proceduralStructureNames.size)
+  for (const formation of structures) {
+    const enemyPieces = formation.pieces.filter((piece) => piece.side === 'enemy')
+    assert.ok(enemyPieces.length >= 3 && enemyPieces.length <= 5)
+    assert.ok(enemyPieces.some((piece) => piece.kind === 'pawn'))
+    assert.ok(enemyPieces.every((piece) => piece.rowFromTop >= 0 && piece.rowFromTop <= 2))
+  }
+})
+
+test('formation selection is deterministic for an explicit run seed', () => {
+  const first = chooseFormation(8, 2468)
+  const second = chooseFormation(8, 2468)
+  const variedNames = new Set(Array.from({ length: 16 }, (_, index) => chooseFormation(8, 2468 + index).name))
+
+  assert.equal(first.name, second.name)
+  assert.ok(variedNames.size > 1)
+})
+
 test('formation selection respects floor gates and spawns tactical pieces', () => {
-  const state = createGame(createDefaultProfile())
+  const state = createGame(createDefaultProfile(), 'pawn', 4242)
   state.pieces = []
   state.floor = 12
-  const formation = chooseFormation(state.floor)
+  const formation = chooseFormation(state.floor, state.runSeed)
   const label = spawnFormation(state)
 
   assert.ok(formation.minFloor <= state.floor)
@@ -297,4 +463,38 @@ test('formation selection respects floor gates and spawns tactical pieces', () =
       .filter((piece) => piece.side === 'enemy')
       .every((piece) => piece.movesRemaining !== null && piece.movesRemaining >= ENEMY_MIN_MOVES && piece.movesRemaining <= ENEMY_MAX_MOVES),
   )
+})
+
+test('generated waves stay in bounds, avoid overlaps, and spawn from top rows', () => {
+  for (const seed of [1, 2, 99, 4242]) {
+    for (let floor = 0; floor <= 16; floor += 1) {
+      const state = createGame(createDefaultProfile(), 'pawn', seed)
+      state.pieces = []
+      state.events = []
+      state.floor = floor
+
+      const label = spawnFormation(state)
+      const occupied = new Set(state.pieces.map((piece) => `${piece.x},${piece.y}`))
+      const enemyPieces = state.pieces.filter((piece) => piece.side === 'enemy')
+
+      assert.match(label, /^Wave \d+: /u)
+      assert.equal(occupied.size, state.pieces.length)
+      assert.ok(enemyPieces.length >= 2)
+      assert.ok(
+        state.pieces.every((piece) => (
+          piece.x >= 0 &&
+          piece.x < BOARD_COLUMNS &&
+          piece.y >= VISIBLE_ROWS - 3 &&
+          piece.y < VISIBLE_ROWS
+        )),
+      )
+      assert.ok(
+        enemyPieces.every((piece) => (
+          piece.movesRemaining !== null &&
+          piece.movesRemaining >= ENEMY_MIN_MOVES &&
+          piece.movesRemaining <= ENEMY_MAX_MOVES
+        )),
+      )
+    }
+  }
 })

@@ -1,5 +1,6 @@
 import { spawnFormation } from './formations.ts'
-import { unlockPiece } from './persistence.ts'
+import { createDefaultProfile, finiteMoveBudgetFor, unlockPiece } from './persistence.ts'
+import { createRunSeed, normalizeSeed, seededInt, seededValue } from './random.ts'
 import { CHEST_SPAWN_CHANCE, SUPPORTED_CARD_IDS, isSupportedCardId, type SupportedCardId } from './cards.ts'
 import { coordsEqual, getLegalMoves, isInsideBoard, pieceAt } from './rules.ts'
 import {
@@ -7,6 +8,7 @@ import {
   CAPTURE_KNOCKOVER_ANIMATION_MS,
   CAPTURE_MOVE_BONUS,
   ENEMY_MAX_MOVES,
+  ENEMY_MIN_MOVES,
   ENEMY_MOVE_ANIMATION_MS,
   HEROIC_MOVES_PER_SCROLL,
   MAX_HAND_SIZE,
@@ -24,7 +26,6 @@ import {
   type StartingHeroKind,
   type TurnResolution,
 } from './types.ts'
-import { createDefaultProfile } from './persistence.ts'
 
 const UNLOCKS: Array<{ floor: number; kind: PlayableKind }> = [
   { floor: 3, kind: 'knight' },
@@ -34,6 +35,8 @@ const UNLOCKS: Array<{ floor: number; kind: PlayableKind }> = [
   { floor: 12, kind: 'queen' },
   { floor: 16, kind: 'king' },
 ]
+
+const PAWN_PROMOTION_KINDS = ['rook', 'bishop', 'knight', 'queen'] as const satisfies readonly PlayableKind[]
 
 const cloneProfile = (profile: Profile): Profile => JSON.parse(JSON.stringify(profile)) as Profile
 
@@ -82,6 +85,8 @@ interface MoveOutcome {
   captured: Piece | undefined
   expired: boolean
   bonusMovesGained: number
+  promotedFrom: PlayableKind | null
+  promotedTo: PlayableKind | null
 }
 
 interface ChestOpenOutcome {
@@ -96,11 +101,6 @@ const touchRevision = (state: GameState): void => {
   state.stateRevision += 1
   state.serverTimeMs = Date.now()
   compactEvents(state)
-}
-
-const seededValue = (seed: number): number => {
-  const value = Math.sin(seed * 12.9898) * 43758.5453
-  return value - Math.floor(value)
 }
 
 const formatCardName = (id: string): string => {
@@ -155,7 +155,7 @@ export const grantCardToHand = (state: GameState, definitionId = drawSupportedCa
 
 export const spawnChestTile = (
   state: GameState,
-  roll = seededValue((state.floor + 1) * 101 + 5),
+  roll = seededValue(state.runSeed, (state.floor + 1) * 101 + 5),
 ): boolean => {
   if (roll >= CHEST_SPAWN_CHANCE) {
     return false
@@ -166,7 +166,7 @@ export const spawnChestTile = (
     return false
   }
 
-  const candidateRoll = seededValue((state.floor + 1) * 131 + 3)
+  const candidateRoll = seededValue(state.runSeed, (state.floor + 1) * 131 + 3)
   const coord = candidates[Math.floor(candidateRoll * candidates.length)] ?? candidates[0]
   state.specialTiles.push({
     id: createTileId(state),
@@ -201,12 +201,14 @@ const openChestAt = (state: GameState, coord: Coord): ChestOpenOutcome => {
 export const createGame = (
   profile: Profile = createDefaultProfile(),
   startingHeroKind: StartingHeroKind = 'pawn',
+  runSeed = createRunSeed(),
 ): GameState => {
   const state: GameState = {
     pieces: [],
     specialTiles: [],
     cardHand: [],
     cardPlayedThisTurn: false,
+    runSeed: normalizeSeed(runSeed),
     floor: 0,
     turn: 1,
     heroicMovesSinceScroll: 0,
@@ -225,12 +227,26 @@ export const createGame = (
     lastFormation: '',
   }
 
+  createStartingPieces(state, startingHeroKind)
+  const formation = spawnFormation(state)
+  spawnChestTile(state)
+  state.message = `Hero ${startingHeroKind} ready. ${formation} approaches.`
+  return state
+}
+
+const createStartingPieces = (state: GameState, startingHeroKind: StartingHeroKind): void => {
+  const heroX = seededInt(state.runSeed, 11, 1, BOARD_COLUMNS - 2)
+  const supportDirection = seededValue(state.runSeed, 13) >= 0.5 ? 1 : -1
+  const supportX = Math.max(0, Math.min(BOARD_COLUMNS - 1, heroX + supportDirection))
+  const heroY = 1
+  const supportY = 2
+
   state.pieces.push({
     id: createPieceId(state),
     kind: startingHeroKind,
     side: 'ally',
-    x: 3,
-    y: 1,
+    x: heroX,
+    y: heroY,
     heroic: true,
     movesRemaining: null,
     modifiers: [],
@@ -239,15 +255,12 @@ export const createGame = (
     id: createPieceId(state),
     kind: 'pawn',
     side: 'ally',
-    x: 4,
-    y: 2,
+    x: supportX,
+    y: supportY,
     heroic: false,
-    movesRemaining: 2 + state.profile.pieces.pawn.level,
+    movesRemaining: finiteMoveBudgetFor(state.profile, 'pawn', 2),
     modifiers: [],
   })
-  spawnFormation(state)
-  spawnChestTile(state)
-  return state
 }
 
 export const findHero = (state: GameState): Piece | undefined => {
@@ -349,6 +362,50 @@ const checkHeroRule = (state: GameState): void => {
   }
 }
 
+const isPromotablePawn = (piece: Piece): boolean => piece.kind === 'pawn' || piece.kind === 'specialPawn'
+
+const promotionRowFor = (piece: Piece): number | null => {
+  if (piece.side === 'ally') {
+    return VISIBLE_ROWS - 1
+  }
+  if (piece.side === 'enemy') {
+    return 0
+  }
+  return null
+}
+
+const pieceIdSalt = (id: string): number => {
+  return [...id].reduce((total, char, index) => total + char.charCodeAt(0) * (index + 1), 0)
+}
+
+const choosePromotionKind = (state: GameState, piece: Piece): PlayableKind => {
+  const index = seededInt(
+    state.runSeed,
+    state.turn * 211 + state.floor * 37 + piece.x * 17 + piece.y * 23 + pieceIdSalt(piece.id),
+    0,
+    PAWN_PROMOTION_KINDS.length - 1,
+  )
+  return PAWN_PROMOTION_KINDS[index] ?? 'rook'
+}
+
+const promotePawnIfReady = (state: GameState, piece: Piece): { from: PlayableKind; to: PlayableKind } | null => {
+  const promotionRow = promotionRowFor(piece)
+  if (!isPromotablePawn(piece) || promotionRow === null || piece.y !== promotionRow) {
+    return null
+  }
+
+  const from = piece.kind as PlayableKind
+  const to = choosePromotionKind(state, piece)
+  piece.kind = to
+  if (!piece.heroic && piece.movesRemaining !== null) {
+    piece.movesRemaining =
+      piece.side === 'enemy'
+        ? seededInt(state.runSeed, state.turn * 229 + pieceIdSalt(piece.id), ENEMY_MIN_MOVES, ENEMY_MAX_MOVES)
+        : finiteMoveBudgetFor(state.profile, to, 3)
+  }
+  return { from, to }
+}
+
 const movePieceTo = (state: GameState, piece: Piece, destination: Coord, durationMs?: number): MoveOutcome => {
   const from = { x: piece.x, y: piece.y }
   const captured = removeAt(state.pieces, destination)
@@ -361,6 +418,8 @@ const movePieceTo = (state: GameState, piece: Piece, destination: Coord, duratio
 
   let expired = false
   let bonusMovesGained = 0
+  let promotedFrom: PlayableKind | null = null
+  let promotedTo: PlayableKind | null = null
   if (!piece.heroic && piece.movesRemaining !== null) {
     piece.movesRemaining = Math.max(0, piece.movesRemaining - 1)
     if (piece.side === 'ally' && captured?.side === 'enemy') {
@@ -372,6 +431,15 @@ const movePieceTo = (state: GameState, piece: Piece, destination: Coord, duratio
       piece.movesRemaining = Math.min(ENEMY_MAX_MOVES, piece.movesRemaining + CAPTURE_MOVE_BONUS)
       bonusMovesGained = piece.movesRemaining - movesBeforeBonus
     }
+  }
+
+  const promotion = promotePawnIfReady(state, piece)
+  if (promotion) {
+    promotedFrom = promotion.from
+    promotedTo = promotion.to
+  }
+
+  if (!promotion && !piece.heroic && piece.movesRemaining !== null) {
     if (piece.movesRemaining === 0) {
       removePieceById(state.pieces, piece.id)
       expired = true
@@ -388,7 +456,7 @@ const movePieceTo = (state: GameState, piece: Piece, destination: Coord, duratio
     }
   }
 
-  return { captured, expired, bonusMovesGained }
+  return { captured, expired, bonusMovesGained, promotedFrom, promotedTo }
 }
 
 const distanceToHero = (state: GameState, coord: Coord): number => {
@@ -580,10 +648,14 @@ export const performPlayerMove = (state: GameState, destination: Coord): TurnRes
   const turnEventStart = state.events.length
   const heroicMovesAfterMove = selected.heroic ? state.heroicMovesSinceScroll + 1 : state.heroicMovesSinceScroll
   const shouldScroll = heroicMovesAfterMove >= HEROIC_MOVES_PER_SCROLL
-  const { captured, expired, bonusMovesGained } = movePieceTo(state, selected, destination)
+  const { captured, expired, bonusMovesGained, promotedFrom, promotedTo } = movePieceTo(state, selected, destination)
   const chestOutcome = selected.side === 'ally' ? openChestAt(state, destination) : null
   if (chestOutcome?.opened || chestOutcome?.blocked) {
     // openChestAt sets the player-facing message.
+  } else if (promotedFrom && promotedTo) {
+    state.message = captured?.side === 'enemy'
+      ? `${promotedFrom} captured ${captured.kind} and promoted to ${promotedTo}.`
+      : `${promotedFrom} promoted to ${promotedTo}.`
   } else if (captured?.side === 'enemy') {
     state.message =
       bonusMovesGained > 0
